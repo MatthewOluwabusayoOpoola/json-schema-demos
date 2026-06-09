@@ -1,0 +1,347 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finance.internal/schemas/invoice.json",
+  "title": "Invoice",
+  "type": "object",
+  "required": [
+    "invoiceId",
+    "issuer",
+    "recipient",
+    "lineItems",
+    "totals",
+    "paymentTerms"
+  ],
+  "$defs": {
+    "address": {
+      "type": "object",
+      "required": [
+        "street",
+        "city",
+        "countryCode"
+      ],
+      "properties": {
+        "street": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "city": {
+          "type": "string"
+        },
+        "stateProvince": {
+          "type": "string"
+        },
+        "postalCode": {
+          "type": "string",
+          "pattern": "^[A-Z0-9 -]{3,10}$"
+        },
+        "countryCode": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        }
+      }
+    },
+    "party": {
+      "type": "object",
+      "required": [
+        "name",
+        "taxId",
+        "address"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "taxId": {
+          "type": "string"
+        },
+        "address": {
+          "$ref": "#/$defs/address"
+        },
+        "contacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/contact"
+          },
+          "maxItems": 5
+        }
+      }
+    },
+    "contact": {
+      "type": "object",
+      "required": [
+        "email"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string"
+        }
+      }
+    },
+    "lineItem": {
+      "type": "object",
+      "required": [
+        "sku",
+        "description",
+        "quantity",
+        "unitPrice",
+        "total"
+      ],
+      "properties": {
+        "sku": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "quantity": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "unitPrice": {
+          "type": "number",
+          "minimum": 0
+        },
+        "taxCode": {
+          "type": "string",
+          "enum": [
+            "VAT_STD",
+            "VAT_RED",
+            "VAT_ZERO",
+            "EXEMPT"
+          ]
+        },
+        "discount": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fraction 0–1"
+        },
+        "total": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal quantity * unitPrice * (1 - discount). Enforced by application layer."
+        }
+      }
+    },
+    "taxLine": {
+      "type": "object",
+      "required": [
+        "taxCode",
+        "rate",
+        "base",
+        "amount"
+      ],
+      "properties": {
+        "taxCode": {
+          "type": "string"
+        },
+        "rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "base": {
+          "type": "number",
+          "minimum": 0
+        },
+        "amount": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal rate * base"
+        }
+      }
+    }
+  },
+  "properties": {
+    "invoiceId": {
+      "type": "string",
+      "pattern": "^INV-[0-9]{4}-[0-9]{6}$"
+    },
+    "issueDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "dueDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "issuer": {
+      "$ref": "#/$defs/party"
+    },
+    "recipient": {
+      "$ref": "#/$defs/party"
+    },
+    "lineItems": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/lineItem"
+      },
+      "minItems": 1
+    },
+    "taxSchedule": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/taxLine"
+      }
+    },
+    "discount": {
+      "type": "object",
+      "properties": {
+        "discountType": {
+          "type": "string",
+          "enum": [
+            "percentage",
+            "fixed",
+            "none"
+          ]
+        },
+        "discountRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "discountAmount": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "if": {
+        "properties": {
+          "discountType": {
+            "const": "percentage"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "discountRate"
+        ]
+      },
+      "else": {
+        "if": {
+          "properties": {
+            "discountType": {
+              "const": "fixed"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "discountAmount"
+          ]
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "required": [
+        "subtotal",
+        "taxTotal",
+        "grandTotal"
+      ],
+      "properties": {
+        "subtotal": {
+          "type": "number",
+          "minimum": 0
+        },
+        "taxTotal": {
+          "type": "number",
+          "minimum": 0
+        },
+        "discountTotal": {
+          "type": "number",
+          "minimum": 0
+        },
+        "grandTotal": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal subtotal + taxTotal - discountTotal"
+        }
+      }
+    },
+    "paymentTerms": {
+      "type": "object",
+      "required": [
+        "method"
+      ],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "bank_transfer",
+            "credit_card",
+            "check",
+            "crypto"
+          ]
+        },
+        "bankDetails": {
+          "type": "object",
+          "properties": {
+            "iban": {
+              "type": "string"
+            },
+            "swift": {
+              "type": "string"
+            },
+            "bankName": {
+              "type": "string"
+            }
+          }
+        },
+        "lateFeeRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.05
+        }
+      },
+      "if": {
+        "properties": {
+          "method": {
+            "const": "bank_transfer"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "bankDetails"
+        ]
+      }
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "filename",
+          "mimeType",
+          "base64"
+        ],
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "base64": {
+            "type": "string",
+            "contentEncoding": "base64"
+          }
+        }
+      },
+      "maxItems": 10
+    }
+  }
+}
