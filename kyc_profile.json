@@ -1,0 +1,429 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finance.internal/schemas/kyc-profile.json",
+  "title": "KYCProfile",
+  "type": "object",
+  "required": [
+    "profileId",
+    "entityType",
+    "riskRating",
+    "identityVerification",
+    "amlChecks"
+  ],
+  "$defs": {
+    "idDocument": {
+      "type": "object",
+      "required": [
+        "docType",
+        "docNumber",
+        "issuingCountry",
+        "expiryDate"
+      ],
+      "properties": {
+        "docType": {
+          "type": "string",
+          "enum": [
+            "passport",
+            "national_id",
+            "drivers_licence",
+            "residence_permit"
+          ]
+        },
+        "docNumber": {
+          "type": "string"
+        },
+        "issuingCountry": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "issueDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "expiryDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "verificationMethod": {
+          "type": "string",
+          "enum": [
+            "in_person",
+            "digital",
+            "biometric",
+            "certified_copy"
+          ]
+        },
+        "verifiedBy": {
+          "type": "string"
+        },
+        "verifiedDate": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "ubo": {
+      "type": "object",
+      "required": [
+        "name",
+        "ownershipPct",
+        "idDocuments"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "format": "date"
+        },
+        "nationality": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "ownershipPct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "controlType": {
+          "type": "string",
+          "enum": [
+            "direct",
+            "indirect",
+            "other"
+          ]
+        },
+        "idDocuments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/idDocument"
+          },
+          "minItems": 1
+        },
+        "pepStatus": {
+          "$ref": "#/$defs/pepCheck"
+        }
+      }
+    },
+    "pepCheck": {
+      "type": "object",
+      "required": [
+        "isPEP",
+        "screeningDate"
+      ],
+      "properties": {
+        "isPEP": {
+          "type": "boolean"
+        },
+        "screeningDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "pepDetails": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string"
+            },
+            "country": {
+              "type": "string"
+            },
+            "positionHeld": {
+              "type": "string"
+            },
+            "endDate": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        },
+        "screeningProvider": {
+          "type": "string"
+        },
+        "matchScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "if": {
+        "properties": {
+          "isPEP": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "pepDetails"
+        ]
+      }
+    },
+    "sanctionsScreen": {
+      "type": "object",
+      "required": [
+        "screeningDate",
+        "result",
+        "listsChecked"
+      ],
+      "properties": {
+        "screeningDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "result": {
+          "type": "string",
+          "enum": [
+            "clear",
+            "potential_match",
+            "confirmed_match"
+          ]
+        },
+        "listsChecked": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "OFAC",
+              "UN",
+              "EU",
+              "HMT",
+              "AUSTRAC"
+            ]
+          },
+          "minItems": 1
+        },
+        "matchDetails": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "listName",
+              "matchName",
+              "matchScore"
+            ],
+            "properties": {
+              "listName": {
+                "type": "string"
+              },
+              "matchName": {
+                "type": "string"
+              },
+              "matchScore": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "resolution": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "profileId": {
+      "type": "string"
+    },
+    "entityType": {
+      "type": "string",
+      "enum": [
+        "individual",
+        "legal_entity",
+        "trust",
+        "foundation"
+      ]
+    },
+    "riskRating": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "unacceptable"
+      ]
+    },
+    "riskScore": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "identityVerification": {
+      "type": "object",
+      "required": [
+        "status",
+        "documents"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "in_progress",
+            "verified",
+            "failed",
+            "expired"
+          ]
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/idDocument"
+          },
+          "minItems": 1
+        },
+        "pepCheck": {
+          "$ref": "#/$defs/pepCheck"
+        },
+        "sanctionsScreen": {
+          "$ref": "#/$defs/sanctionsScreen"
+        },
+        "adverseMedia": {
+          "type": "object",
+          "properties": {
+            "checked": {
+              "type": "boolean"
+            },
+            "hits": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "headline",
+                  "source",
+                  "date"
+                ],
+                "properties": {
+                  "headline": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "uboRegister": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ubo"
+      },
+      "description": "Sum of ubo[*].ownershipPct may exceed 100 due to indirect chains, but direct UBOs MUST NOT exceed 100"
+    },
+    "amlChecks": {
+      "type": "object",
+      "required": [
+        "transactionMonitoring",
+        "dueDiligenceLevel"
+      ],
+      "properties": {
+        "dueDiligenceLevel": {
+          "type": "string",
+          "enum": [
+            "simplified",
+            "standard",
+            "enhanced"
+          ]
+        },
+        "transactionMonitoring": {
+          "type": "object",
+          "required": [
+            "profileEnabled",
+            "riskThreshold"
+          ],
+          "properties": {
+            "profileEnabled": {
+              "type": "boolean"
+            },
+            "riskThreshold": {
+              "type": "number",
+              "minimum": 0
+            },
+            "monitoringRules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "ruleId",
+                  "description",
+                  "threshold"
+                ],
+                "properties": {
+                  "ruleId": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "threshold": {
+                    "type": "number"
+                  },
+                  "timeWindowHours": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "sars": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "sarId",
+              "filedDate",
+              "status"
+            ],
+            "properties": {
+              "sarId": {
+                "type": "string"
+              },
+              "filedDate": {
+                "type": "string",
+                "format": "date"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "filed",
+                  "acknowledged",
+                  "investigated"
+                ]
+              }
+            }
+          }
+        },
+        "nextReviewDate": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "entityType": {
+        "const": "legal_entity"
+      }
+    }
+  },
+  "then": {
+    "required": [
+      "uboRegister"
+    ]
+  }
+}
