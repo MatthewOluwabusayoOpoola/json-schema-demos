@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finance.internal/schemas/payroll-run.json",
+  "title": "PayrollRun",
+  "type": "object",
+  "required": [
+    "runId",
+    "payPeriod",
+    "employer",
+    "employees",
+    "totals"
+  ],
+  "$defs": {
+    "earnItem": {
+      "type": "object",
+      "required": [
+        "code",
+        "description",
+        "amount"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "minimum": 0
+        },
+        "hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "rate": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "deductItem": {
+      "type": "object",
+      "required": [
+        "code",
+        "description",
+        "amount"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "maximum": 0,
+          "description": "Must be negative or zero"
+        },
+        "statutory": {
+          "type": "boolean"
+        }
+      }
+    },
+    "employeePayslip": {
+      "type": "object",
+      "required": [
+        "employeeId",
+        "employmentType",
+        "earnings",
+        "deductions",
+        "netPay"
+      ],
+      "properties": {
+        "employeeId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "employmentType": {
+          "type": "string",
+          "enum": [
+            "full_time",
+            "part_time",
+            "contractor",
+            "casual",
+            "intern"
+          ]
+        },
+        "taxCode": {
+          "type": "string"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": [
+            "bank_transfer",
+            "check"
+          ]
+        },
+        "bankAccount": {
+          "type": "object",
+          "properties": {
+            "bsb": {
+              "type": "string"
+            },
+            "accountNumber": {
+              "type": "string"
+            },
+            "accountName": {
+              "type": "string"
+            }
+          }
+        },
+        "earnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/earnItem"
+          },
+          "minItems": 1
+        },
+        "grossPay": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal sum of earnings[*].amount"
+        },
+        "deductions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/deductItem"
+          }
+        },
+        "totalDeductions": {
+          "type": "number",
+          "maximum": 0,
+          "description": "MUST equal sum of deductions[*].amount"
+        },
+        "netPay": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal grossPay + totalDeductions"
+        },
+        "employerContributions": {
+          "type": "object",
+          "properties": {
+            "superannuation": {
+              "type": "number",
+              "minimum": 0
+            },
+            "workersComp": {
+              "type": "number",
+              "minimum": 0
+            },
+            "payrollTax": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "contractDetails": {
+          "type": "object",
+          "properties": {
+            "contractNumber": {
+              "type": "string"
+            },
+            "abn": {
+              "type": "string"
+            },
+            "gstRegistered": {
+              "type": "boolean"
+            },
+            "dailyRate": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "ytdTotals": {
+          "type": "object",
+          "properties": {
+            "grossYTD": {
+              "type": "number"
+            },
+            "taxYTD": {
+              "type": "number"
+            },
+            "superYTD": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "employmentType": {
+            "const": "contractor"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "contractDetails"
+        ]
+      }
+    }
+  },
+  "properties": {
+    "runId": {
+      "type": "string"
+    },
+    "payPeriod": {
+      "type": "object",
+      "required": [
+        "startDate",
+        "endDate",
+        "payDate"
+      ],
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "payDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "frequency": {
+          "type": "string",
+          "enum": [
+            "weekly",
+            "bi-weekly",
+            "semi-monthly",
+            "monthly"
+          ]
+        }
+      }
+    },
+    "employer": {
+      "type": "object",
+      "required": [
+        "name",
+        "taxId",
+        "payrollId"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "taxId": {
+          "type": "string"
+        },
+        "payrollId": {
+          "type": "string"
+        }
+      }
+    },
+    "employees": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/employeePayslip"
+      },
+      "minItems": 1
+    },
+    "totals": {
+      "type": "object",
+      "required": [
+        "totalGross",
+        "totalDeductions",
+        "totalNet",
+        "totalEmployerCost"
+      ],
+      "properties": {
+        "totalGross": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal sum of employees[*].grossPay"
+        },
+        "totalDeductions": {
+          "type": "number",
+          "description": "MUST equal sum of employees[*].totalDeductions"
+        },
+        "totalNet": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal sum of employees[*].netPay"
+        },
+        "totalEmployerCost": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal totalGross + sum of employerContributions"
+        },
+        "headcount": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "MUST equal employees.length"
+        }
+      }
+    },
+    "filingReferences": {
+      "type": "object",
+      "properties": {
+        "taxFilingRef": {
+          "type": "string"
+        },
+        "pensionFilingRef": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
