@@ -1,0 +1,312 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finance.internal/schemas/budget-plan.json",
+  "title": "BudgetPlan",
+  "type": "object",
+  "required": [
+    "budgetId",
+    "fiscalYear",
+    "organisation",
+    "departments",
+    "grandTotal"
+  ],
+  "$defs": {
+    "budgetLine": {
+      "type": "object",
+      "required": [
+        "lineId",
+        "description",
+        "glCode",
+        "amount",
+        "capex"
+      ],
+      "properties": {
+        "lineId": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "glCode": {
+          "type": "string",
+          "pattern": "^[0-9]{6}$"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "capex": {
+          "type": "boolean"
+        },
+        "assetClass": {
+          "type": "string",
+          "enum": [
+            "PP&E",
+            "intangible",
+            "ROU",
+            "financial_asset"
+          ]
+        },
+        "priorYearActual": {
+          "type": "number"
+        },
+        "variance": {
+          "type": "number",
+          "description": "MUST equal amount - priorYearActual"
+        },
+        "monthly": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 12,
+          "maxItems": 12,
+          "description": "Sum MUST equal amount"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "if": {
+        "properties": {
+          "capex": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "assetClass"
+        ]
+      }
+    },
+    "costCentre": {
+      "type": "object",
+      "required": [
+        "ccId",
+        "name",
+        "lines",
+        "ccTotal"
+      ],
+      "properties": {
+        "ccId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "manager": {
+          "type": "string"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/budgetLine"
+          },
+          "minItems": 1
+        },
+        "ccTotal": {
+          "type": "number",
+          "description": "MUST equal sum of lines[*].amount"
+        },
+        "capexTotal": {
+          "type": "number",
+          "description": "MUST equal sum of lines where capex=true"
+        },
+        "opexTotal": {
+          "type": "number",
+          "description": "MUST equal sum of lines where capex=false"
+        },
+        "headcountPlan": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "role",
+              "fte",
+              "annualCost"
+            ],
+            "properties": {
+              "role": {
+                "type": "string"
+              },
+              "fte": {
+                "type": "number",
+                "minimum": 0
+              },
+              "annualCost": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "department": {
+      "type": "object",
+      "required": [
+        "deptId",
+        "name",
+        "costCentres",
+        "deptTotal"
+      ],
+      "properties": {
+        "deptId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "costCentres": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/costCentre"
+          },
+          "minItems": 1
+        },
+        "deptTotal": {
+          "type": "number",
+          "description": "MUST equal sum of costCentres[*].ccTotal"
+        },
+        "deptCapex": {
+          "type": "number"
+        },
+        "deptOpex": {
+          "type": "number"
+        },
+        "deptHeadcount": {
+          "type": "number",
+          "description": "MUST equal sum of all headcountPlan[*].fte"
+        }
+      }
+    }
+  },
+  "properties": {
+    "budgetId": {
+      "type": "string"
+    },
+    "fiscalYear": {
+      "type": "integer",
+      "minimum": 2020,
+      "maximum": 2099
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "organisation": {
+      "type": "object",
+      "required": [
+        "name",
+        "version",
+        "approvedBy",
+        "approvalDate"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "approvedBy": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "role"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              },
+              "approvalDate": {
+                "type": "string",
+                "format": "date"
+              }
+            }
+          }
+        },
+        "approvalDate": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "departments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/department"
+      },
+      "minItems": 1
+    },
+    "grandTotal": {
+      "type": "object",
+      "required": [
+        "totalBudget",
+        "totalCapex",
+        "totalOpex",
+        "totalHeadcount"
+      ],
+      "properties": {
+        "totalBudget": {
+          "type": "number",
+          "description": "MUST equal sum of departments[*].deptTotal"
+        },
+        "totalCapex": {
+          "type": "number",
+          "description": "MUST equal sum of departments[*].deptCapex"
+        },
+        "totalOpex": {
+          "type": "number",
+          "description": "MUST equal sum of departments[*].deptOpex"
+        },
+        "totalHeadcount": {
+          "type": "number",
+          "description": "MUST equal sum of departments[*].deptHeadcount"
+        },
+        "revenueTarget": {
+          "type": "number"
+        },
+        "ebitdaTarget": {
+          "type": "number"
+        }
+      }
+    },
+    "scenarioAnalysis": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "scenario",
+          "deltaAmount"
+        ],
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "base",
+              "optimistic",
+              "pessimistic",
+              "stress"
+            ]
+          },
+          "deltaAmount": {
+            "type": "number"
+          },
+          "deltaHeadcount": {
+            "type": "integer"
+          },
+          "rationale": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
