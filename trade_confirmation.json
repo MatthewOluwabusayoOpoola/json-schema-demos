@@ -1,0 +1,345 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finance.internal/schemas/trade-confirm.json",
+  "title": "TradeConfirmation",
+  "type": "object",
+  "required": [
+    "tradeId",
+    "tradeDate",
+    "counterparty",
+    "instrumentType",
+    "instrument",
+    "economics",
+    "settlement"
+  ],
+  "$defs": {
+    "lei": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]{20}$"
+    },
+    "settlementParty": {
+      "type": "object",
+      "required": [
+        "name",
+        "lei",
+        "custodian",
+        "accountNumber"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "lei": {
+          "$ref": "#/$defs/lei"
+        },
+        "custodian": {
+          "type": "string"
+        },
+        "accountNumber": {
+          "type": "string"
+        },
+        "ssiBic": {
+          "type": "string",
+          "pattern": "^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$"
+        }
+      }
+    },
+    "equityInstrument": {
+      "type": "object",
+      "required": [
+        "isin",
+        "ticker",
+        "exchange"
+      ],
+      "properties": {
+        "isin": {
+          "type": "string"
+        },
+        "ticker": {
+          "type": "string"
+        },
+        "exchange": {
+          "type": "string"
+        },
+        "sedol": {
+          "type": "string"
+        }
+      }
+    },
+    "bondInstrument": {
+      "type": "object",
+      "required": [
+        "isin",
+        "couponRate",
+        "maturityDate",
+        "faceValue"
+      ],
+      "properties": {
+        "isin": {
+          "type": "string"
+        },
+        "couponRate": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maturityDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "faceValue": {
+          "type": "number"
+        },
+        "dayCount": {
+          "type": "string",
+          "enum": [
+            "30/360",
+            "ACT/360",
+            "ACT/365",
+            "ACT/ACT"
+          ]
+        },
+        "accruedInterest": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "fxInstrument": {
+      "type": "object",
+      "required": [
+        "baseCurrency",
+        "quoteCurrency",
+        "spotRate"
+      ],
+      "properties": {
+        "baseCurrency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "quoteCurrency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "spotRate": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "forwardPoints": {
+          "type": "number"
+        },
+        "valueDate": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "derivativeInstrument": {
+      "type": "object",
+      "required": [
+        "underlier",
+        "derivativeType",
+        "notional",
+        "expiryDate"
+      ],
+      "properties": {
+        "underlier": {
+          "type": "string"
+        },
+        "derivativeType": {
+          "type": "string",
+          "enum": [
+            "call",
+            "put",
+            "swap",
+            "forward",
+            "swaption"
+          ]
+        },
+        "notional": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "strike": {
+          "type": "number"
+        },
+        "expiryDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "settlementType": {
+          "type": "string",
+          "enum": [
+            "cash",
+            "physical"
+          ]
+        }
+      }
+    }
+  },
+  "properties": {
+    "tradeId": {
+      "type": "string"
+    },
+    "tradeDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "bookingEntity": {
+      "$ref": "#/$defs/settlementParty"
+    },
+    "counterparty": {
+      "$ref": "#/$defs/settlementParty"
+    },
+    "instrumentType": {
+      "type": "string",
+      "enum": [
+        "equity",
+        "bond",
+        "fx",
+        "derivative"
+      ]
+    },
+    "instrument": {
+      "type": "object"
+    },
+    "economics": {
+      "type": "object",
+      "required": [
+        "side",
+        "quantity",
+        "price",
+        "grossConsideration",
+        "currency"
+      ],
+      "properties": {
+        "side": {
+          "type": "string",
+          "enum": [
+            "buy",
+            "sell"
+          ]
+        },
+        "quantity": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "price": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "grossConsideration": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal quantity * price"
+        },
+        "commission": {
+          "type": "number",
+          "minimum": 0
+        },
+        "tax": {
+          "type": "number",
+          "minimum": 0
+        },
+        "netConsideration": {
+          "type": "number",
+          "description": "MUST equal grossConsideration + commission + tax"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        }
+      }
+    },
+    "settlement": {
+      "type": "object",
+      "required": [
+        "settlementDate",
+        "deliveryVersusPayment"
+      ],
+      "properties": {
+        "settlementDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "deliveryVersusPayment": {
+          "type": "boolean"
+        },
+        "deliverer": {
+          "$ref": "#/$defs/settlementParty"
+        },
+        "receiver": {
+          "$ref": "#/$defs/settlementParty"
+        },
+        "failReasonCode": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "instrumentType": {
+            "const": "equity"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "instrument": {
+            "$ref": "#/$defs/equityInstrument"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "instrumentType": {
+            "const": "bond"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "instrument": {
+            "$ref": "#/$defs/bondInstrument"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "instrumentType": {
+            "const": "fx"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "instrument": {
+            "$ref": "#/$defs/fxInstrument"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "instrumentType": {
+            "const": "derivative"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "instrument": {
+            "$ref": "#/$defs/derivativeInstrument"
+          }
+        }
+      }
+    }
+  ]
+}
