@@ -1,0 +1,359 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finance.internal/schemas/annual-report.json",
+  "title": "AnnualReport",
+  "type": "object",
+  "required": [
+    "entity",
+    "reportingPeriod",
+    "balanceSheet",
+    "incomeStatement",
+    "cashFlow",
+    "auditor"
+  ],
+  "$defs": {
+    "monetaryAmount": {
+      "type": "object",
+      "required": [
+        "amount",
+        "currency"
+      ],
+      "properties": {
+        "amount": {
+          "type": "number"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "units",
+            "thousands",
+            "millions",
+            "billions"
+          ]
+        }
+      }
+    },
+    "accountLine": {
+      "type": "object",
+      "required": [
+        "label",
+        "amount"
+      ],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "amount": {
+          "$ref": "#/$defs/monetaryAmount"
+        },
+        "noteRef": {
+          "type": "string",
+          "description": "Cross-ref to footnotes"
+        },
+        "priorYear": {
+          "$ref": "#/$defs/monetaryAmount"
+        }
+      }
+    },
+    "accountSection": {
+      "type": "object",
+      "required": [
+        "title",
+        "lines",
+        "sectionTotal"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/accountLine"
+          },
+          "minItems": 1
+        },
+        "sectionTotal": {
+          "$ref": "#/$defs/monetaryAmount",
+          "description": "MUST equal sum of lines[*].amount"
+        }
+      }
+    },
+    "auditor": {
+      "type": "object",
+      "required": [
+        "firmName",
+        "partnerName",
+        "auditDate",
+        "auditStatus"
+      ],
+      "properties": {
+        "firmName": {
+          "type": "string"
+        },
+        "partnerName": {
+          "type": "string"
+        },
+        "auditDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "auditStatus": {
+          "type": "string",
+          "enum": [
+            "unqualified",
+            "qualified",
+            "adverse",
+            "disclaimer"
+          ]
+        },
+        "qualificationNotes": {
+          "type": "string"
+        }
+      },
+      "if": {
+        "properties": {
+          "auditStatus": {
+            "enum": [
+              "qualified",
+              "adverse"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "qualificationNotes"
+        ]
+      }
+    }
+  },
+  "properties": {
+    "entity": {
+      "type": "object",
+      "required": [
+        "name",
+        "lei",
+        "fiscalYearEnd",
+        "jurisdiction"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "lei": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{20}$"
+        },
+        "fiscalYearEnd": {
+          "type": "string",
+          "format": "date"
+        },
+        "jurisdiction": {
+          "type": "string"
+        },
+        "subsidiaries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "ownershipPct"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "ownershipPct": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "consolidationMethod": {
+                "type": "string",
+                "enum": [
+                  "full",
+                  "equity",
+                  "proportional"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "reportingPeriod": {
+      "type": "object",
+      "required": [
+        "startDate",
+        "endDate"
+      ],
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "balanceSheet": {
+      "type": "object",
+      "required": [
+        "assets",
+        "liabilities",
+        "equity",
+        "date"
+      ],
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "assets": {
+          "type": "object",
+          "required": [
+            "current",
+            "nonCurrent",
+            "totalAssets"
+          ],
+          "properties": {
+            "current": {
+              "$ref": "#/$defs/accountSection"
+            },
+            "nonCurrent": {
+              "$ref": "#/$defs/accountSection"
+            },
+            "totalAssets": {
+              "$ref": "#/$defs/monetaryAmount",
+              "description": "MUST equal current.sectionTotal + nonCurrent.sectionTotal"
+            }
+          }
+        },
+        "liabilities": {
+          "type": "object",
+          "required": [
+            "current",
+            "nonCurrent",
+            "totalLiabilities"
+          ],
+          "properties": {
+            "current": {
+              "$ref": "#/$defs/accountSection"
+            },
+            "nonCurrent": {
+              "$ref": "#/$defs/accountSection"
+            },
+            "totalLiabilities": {
+              "$ref": "#/$defs/monetaryAmount"
+            }
+          }
+        },
+        "equity": {
+          "$ref": "#/$defs/accountSection"
+        },
+        "balanceCheck": {
+          "type": "string",
+          "description": "totalAssets MUST equal totalLiabilities + equity.sectionTotal"
+        }
+      }
+    },
+    "incomeStatement": {
+      "type": "object",
+      "required": [
+        "revenue",
+        "expenses",
+        "netIncome"
+      ],
+      "properties": {
+        "revenue": {
+          "$ref": "#/$defs/accountSection"
+        },
+        "expenses": {
+          "$ref": "#/$defs/accountSection"
+        },
+        "ebitda": {
+          "$ref": "#/$defs/monetaryAmount"
+        },
+        "depreciation": {
+          "$ref": "#/$defs/monetaryAmount"
+        },
+        "ebit": {
+          "$ref": "#/$defs/monetaryAmount"
+        },
+        "interestExpense": {
+          "$ref": "#/$defs/monetaryAmount"
+        },
+        "taxExpense": {
+          "$ref": "#/$defs/monetaryAmount"
+        },
+        "netIncome": {
+          "$ref": "#/$defs/monetaryAmount",
+          "description": "MUST equal revenue.sectionTotal - expenses.sectionTotal - taxExpense.amount"
+        }
+      }
+    },
+    "cashFlow": {
+      "type": "object",
+      "required": [
+        "operating",
+        "investing",
+        "financing",
+        "netChange"
+      ],
+      "properties": {
+        "operating": {
+          "$ref": "#/$defs/accountSection"
+        },
+        "investing": {
+          "$ref": "#/$defs/accountSection"
+        },
+        "financing": {
+          "$ref": "#/$defs/accountSection"
+        },
+        "netChange": {
+          "$ref": "#/$defs/monetaryAmount",
+          "description": "MUST equal sum of three section totals"
+        }
+      }
+    },
+    "auditor": {
+      "$ref": "#/$defs/auditor"
+    },
+    "footnotes": {
+      "type": "array",
+      "maxItems": 60,
+      "items": {
+        "type": "object",
+        "required": [
+          "noteId",
+          "title",
+          "body"
+        ],
+        "properties": {
+          "noteId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "tables": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  }
+}
