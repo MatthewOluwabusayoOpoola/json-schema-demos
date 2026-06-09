@@ -1,0 +1,435 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finance.internal/schemas/regulatory-capital.json",
+  "title": "RegulatoryCapitalReport",
+  "type": "object",
+  "required": [
+    "institutionId",
+    "reportingDate",
+    "reportingStandard",
+    "capitalStructure",
+    "rwa",
+    "ratios"
+  ],
+  "$defs": {
+    "capitalComponent": {
+      "type": "object",
+      "required": [
+        "componentId",
+        "description",
+        "amount",
+        "tier"
+      ],
+      "properties": {
+        "componentId": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "tier": {
+          "type": "string",
+          "enum": [
+            "CET1",
+            "AT1",
+            "Tier2"
+          ]
+        },
+        "eligibility": {
+          "type": "string",
+          "enum": [
+            "eligible",
+            "phase_out",
+            "ineligible"
+          ]
+        },
+        "phaseOutPct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "expiryDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "regulatoryApproval": {
+          "type": "boolean"
+        }
+      }
+    },
+    "rwaExposure": {
+      "type": "object",
+      "required": [
+        "exposureClass",
+        "grossExposure",
+        "rwa"
+      ],
+      "properties": {
+        "exposureClass": {
+          "type": "string",
+          "enum": [
+            "central_bank",
+            "institution",
+            "corporate",
+            "retail",
+            "real_estate",
+            "securitisation",
+            "equity",
+            "other"
+          ]
+        },
+        "grossExposure": {
+          "type": "number",
+          "minimum": 0
+        },
+        "creditRiskMitigation": {
+          "type": "number",
+          "minimum": 0
+        },
+        "netExposure": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal grossExposure - creditRiskMitigation"
+        },
+        "riskWeight": {
+          "type": "number",
+          "minimum": 0
+        },
+        "rwa": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal netExposure * riskWeight"
+        },
+        "approach": {
+          "type": "string",
+          "enum": [
+            "SA",
+            "IRB-F",
+            "IRB-A",
+            "IMM"
+          ]
+        }
+      }
+    },
+    "operationalRisk": {
+      "type": "object",
+      "required": [
+        "approach",
+        "rwa"
+      ],
+      "properties": {
+        "approach": {
+          "type": "string",
+          "enum": [
+            "BIA",
+            "SA",
+            "AMA",
+            "SMA"
+          ]
+        },
+        "rwa": {
+          "type": "number",
+          "minimum": 0
+        },
+        "grossIncome": {
+          "type": "number"
+        },
+        "internalLossData": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "lossCategory",
+              "amount",
+              "year"
+            ],
+            "properties": {
+              "lossCategory": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number",
+                "minimum": 0
+              },
+              "year": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "liquidityCoverage": {
+      "type": "object",
+      "required": [
+        "hqla",
+        "netOutflows",
+        "lcr"
+      ],
+      "properties": {
+        "hqla": {
+          "type": "object",
+          "required": [
+            "level1",
+            "level2a",
+            "level2b",
+            "totalHQLA"
+          ],
+          "properties": {
+            "level1": {
+              "type": "number",
+              "minimum": 0
+            },
+            "level2a": {
+              "type": "number",
+              "minimum": 0
+            },
+            "level2b": {
+              "type": "number",
+              "minimum": 0
+            },
+            "totalHQLA": {
+              "type": "number",
+              "minimum": 0,
+              "description": "MUST equal level1 + 0.85*level2a + 0.75*level2b (approx)"
+            }
+          }
+        },
+        "netOutflows": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "lcr": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal totalHQLA / netOutflows * 100"
+        }
+      }
+    }
+  },
+  "properties": {
+    "institutionId": {
+      "type": "string"
+    },
+    "institutionName": {
+      "type": "string"
+    },
+    "reportingDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "reportingStandard": {
+      "type": "string",
+      "enum": [
+        "Basel_III",
+        "CRR2",
+        "APRA",
+        "FRB"
+      ]
+    },
+    "gsibCategory": {
+      "type": "string",
+      "enum": [
+        "G-SIB",
+        "D-SIB",
+        "other"
+      ]
+    },
+    "capitalStructure": {
+      "type": "object",
+      "required": [
+        "components",
+        "cet1Capital",
+        "tier1Capital",
+        "totalCapital"
+      ],
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capitalComponent"
+          },
+          "minItems": 1
+        },
+        "cet1Capital": {
+          "type": "number",
+          "description": "MUST equal sum of CET1 eligible components"
+        },
+        "at1Capital": {
+          "type": "number",
+          "minimum": 0
+        },
+        "tier1Capital": {
+          "type": "number",
+          "description": "MUST equal cet1Capital + at1Capital"
+        },
+        "tier2Capital": {
+          "type": "number",
+          "minimum": 0
+        },
+        "totalCapital": {
+          "type": "number",
+          "description": "MUST equal tier1Capital + tier2Capital"
+        },
+        "deductions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "category",
+              "amount"
+            ],
+            "properties": {
+              "category": {
+                "type": "string",
+                "enum": [
+                  "goodwill",
+                  "deferred_tax",
+                  "intangibles",
+                  "shortfall",
+                  "excess_AT1",
+                  "other"
+                ]
+              },
+              "amount": {
+                "type": "number",
+                "maximum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "rwa": {
+      "type": "object",
+      "required": [
+        "creditRiskExposures",
+        "marketRiskRWA",
+        "operationalRisk",
+        "totalRWA"
+      ],
+      "properties": {
+        "creditRiskExposures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rwaExposure"
+          },
+          "minItems": 1
+        },
+        "creditRiskRWA": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal sum of creditRiskExposures[*].rwa"
+        },
+        "marketRiskRWA": {
+          "type": "number",
+          "minimum": 0
+        },
+        "operationalRisk": {
+          "$ref": "#/$defs/operationalRisk"
+        },
+        "cvtAdjustment": {
+          "type": "number",
+          "minimum": 0
+        },
+        "totalRWA": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal creditRiskRWA + marketRiskRWA + operationalRisk.rwa + cvtAdjustment"
+        }
+      }
+    },
+    "ratios": {
+      "type": "object",
+      "required": [
+        "cet1Ratio",
+        "tier1Ratio",
+        "totalCapitalRatio",
+        "leverageRatio"
+      ],
+      "properties": {
+        "cet1Ratio": {
+          "type": "number",
+          "description": "MUST equal capitalStructure.cet1Capital / rwa.totalRWA"
+        },
+        "tier1Ratio": {
+          "type": "number"
+        },
+        "totalCapitalRatio": {
+          "type": "number"
+        },
+        "leverageRatio": {
+          "type": "number",
+          "description": "Tier1 / total exposure measure"
+        },
+        "cet1Requirement": {
+          "type": "number",
+          "description": "Minimum + buffers"
+        },
+        "gsibSurcharge": {
+          "type": "number",
+          "minimum": 0
+        },
+        "headroom": {
+          "type": "number",
+          "description": "cet1Ratio - cet1Requirement"
+        }
+      }
+    },
+    "liquidity": {
+      "$ref": "#/$defs/liquidityCoverage"
+    },
+    "disclosures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "pillar",
+          "templateCode",
+          "values"
+        ],
+        "properties": {
+          "pillar": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3
+            ]
+          },
+          "templateCode": {
+            "type": "string"
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "gsibCategory": {
+        "const": "G-SIB"
+      }
+    }
+  },
+  "then": {
+    "required": [
+      "ratios"
+    ],
+    "properties": {
+      "ratios": {
+        "required": [
+          "gsibSurcharge"
+        ]
+      }
+    }
+  }
+}
