@@ -1,0 +1,363 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finance.internal/schemas/fund-nav.json",
+  "title": "FundNAVReport",
+  "type": "object",
+  "required": [
+    "fundId",
+    "valuationDate",
+    "holdings",
+    "liabilities",
+    "shareClasses",
+    "nav"
+  ],
+  "$defs": {
+    "price": {
+      "type": "object",
+      "required": [
+        "value",
+        "currency",
+        "pricingSource",
+        "priceDate"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "pricingSource": {
+          "type": "string",
+          "enum": [
+            "exchange",
+            "broker_quote",
+            "model",
+            "NAV",
+            "matrix"
+          ]
+        },
+        "priceDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "modelInputs": {
+          "type": "object",
+          "properties": {
+            "model": {
+              "type": "string"
+            },
+            "discountRate": {
+              "type": "number"
+            },
+            "projectedCashFlows": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "terminalGrowthRate": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "pricingSource": {
+            "const": "model"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "modelInputs"
+        ]
+      }
+    },
+    "holding": {
+      "type": "object",
+      "required": [
+        "holdingId",
+        "assetClass",
+        "identifier",
+        "quantity",
+        "price",
+        "marketValue"
+      ],
+      "properties": {
+        "holdingId": {
+          "type": "string"
+        },
+        "assetClass": {
+          "type": "string",
+          "enum": [
+            "equity",
+            "fixed_income",
+            "derivative",
+            "real_estate",
+            "commodity",
+            "cash",
+            "alternative"
+          ]
+        },
+        "identifier": {
+          "type": "object",
+          "properties": {
+            "isin": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}[A-Z0-9]{9}[0-9]$"
+            },
+            "cusip": {
+              "type": "string"
+            },
+            "ticker": {
+              "type": "string"
+            }
+          }
+        },
+        "quantity": {
+          "type": "number"
+        },
+        "price": {
+          "$ref": "#/$defs/price"
+        },
+        "marketValue": {
+          "type": "number",
+          "description": "MUST equal quantity * price.value (in fund currency)"
+        },
+        "accruals": {
+          "type": "object",
+          "properties": {
+            "dividendAccrual": {
+              "type": "number"
+            },
+            "interestAccrual": {
+              "type": "number"
+            },
+            "fxUnrealised": {
+              "type": "number"
+            }
+          }
+        },
+        "exposure": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "string"
+            },
+            "sector": {
+              "type": "string"
+            },
+            "currency": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            },
+            "fxHedgeRatio": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        }
+      }
+    },
+    "shareClass": {
+      "type": "object",
+      "required": [
+        "classId",
+        "currency",
+        "sharesOutstanding",
+        "navPerShare",
+        "totalClassNAV"
+      ],
+      "properties": {
+        "classId": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "sharesOutstanding": {
+          "type": "number",
+          "minimum": 0
+        },
+        "navPerShare": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "totalClassNAV": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "MUST equal sharesOutstanding * navPerShare"
+        },
+        "managementFeeRate": {
+          "type": "number",
+          "minimum": 0
+        },
+        "performanceFeeRate": {
+          "type": "number",
+          "minimum": 0
+        },
+        "highWaterMark": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "properties": {
+    "fundId": {
+      "type": "string"
+    },
+    "fundName": {
+      "type": "string"
+    },
+    "valuationDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "baseCurrency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "holdings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/holding"
+      },
+      "minItems": 1
+    },
+    "liabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "description",
+          "amount"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0
+          },
+          "accrualBasis": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "monthly",
+              "quarterly"
+            ]
+          }
+        }
+      }
+    },
+    "nav": {
+      "type": "object",
+      "required": [
+        "grossAssets",
+        "totalLiabilities",
+        "netAssetValue"
+      ],
+      "properties": {
+        "grossAssets": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal sum of holdings[*].marketValue + accruals"
+        },
+        "totalLiabilities": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal sum of liabilities[*].amount"
+        },
+        "netAssetValue": {
+          "type": "number",
+          "minimum": 0,
+          "description": "MUST equal grossAssets - totalLiabilities"
+        },
+        "priorDayNAV": {
+          "type": "number"
+        },
+        "navChange": {
+          "type": "number"
+        }
+      }
+    },
+    "shareClasses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/shareClass"
+      },
+      "description": "Sum of shareClasses[*].totalClassNAV MUST equal nav.netAssetValue"
+    },
+    "activity": {
+      "type": "object",
+      "properties": {
+        "subscriptions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "classId",
+              "amount",
+              "shares",
+              "date"
+            ],
+            "properties": {
+              "classId": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number",
+                "minimum": 0
+              },
+              "shares": {
+                "type": "number",
+                "minimum": 0
+              },
+              "date": {
+                "type": "string",
+                "format": "date"
+              }
+            }
+          }
+        },
+        "redemptions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "classId",
+              "shares",
+              "proceeds",
+              "date"
+            ],
+            "properties": {
+              "classId": {
+                "type": "string"
+              },
+              "shares": {
+                "type": "number",
+                "minimum": 0
+              },
+              "proceeds": {
+                "type": "number",
+                "minimum": 0
+              },
+              "date": {
+                "type": "string",
+                "format": "date"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
