@@ -1,0 +1,377 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finance.internal/schemas/insurance-policy.json",
+  "title": "InsurancePolicy",
+  "type": "object",
+  "required": [
+    "policyNumber",
+    "policyType",
+    "policyholder",
+    "coverages",
+    "premium"
+  ],
+  "$defs": {
+    "insuredPerson": {
+      "type": "object",
+      "required": [
+        "name",
+        "dateOfBirth",
+        "relationship"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "format": "date"
+        },
+        "relationship": {
+          "type": "string",
+          "enum": [
+            "self",
+            "spouse",
+            "child",
+            "parent",
+            "other"
+          ]
+        },
+        "smoker": {
+          "type": "boolean"
+        },
+        "preExistingConditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "coverageId",
+        "type",
+        "sumInsured",
+        "premium"
+      ],
+      "properties": {
+        "coverageId": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "life",
+            "critical_illness",
+            "disability",
+            "TPD",
+            "accident",
+            "medical",
+            "property",
+            "liability"
+          ]
+        },
+        "sumInsured": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "premium": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "premiumFrequency": {
+          "type": "string",
+          "enum": [
+            "monthly",
+            "quarterly",
+            "semi-annual",
+            "annual"
+          ]
+        },
+        "waitingPeriodDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "beneficiaries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "relationship",
+              "allocationPct"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "relationship": {
+                "type": "string"
+              },
+              "allocationPct": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              }
+            }
+          },
+          "description": "Sum of allocationPct MUST equal 100"
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "required": [
+        "claimId",
+        "coverageId",
+        "incidentDate",
+        "status"
+      ],
+      "properties": {
+        "claimId": {
+          "type": "string"
+        },
+        "coverageId": {
+          "type": "string"
+        },
+        "incidentDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "reportedDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "under_review",
+            "approved",
+            "denied",
+            "paid",
+            "closed"
+          ]
+        },
+        "claimedAmount": {
+          "type": "number",
+          "minimum": 0
+        },
+        "approvedAmount": {
+          "type": "number",
+          "minimum": 0
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "docType",
+              "url"
+            ],
+            "properties": {
+              "docType": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "policyNumber": {
+      "type": "string"
+    },
+    "policyType": {
+      "type": "string",
+      "enum": [
+        "life",
+        "health",
+        "property",
+        "liability",
+        "motor",
+        "marine",
+        "commercial"
+      ]
+    },
+    "policyholder": {
+      "type": "object",
+      "required": [
+        "name",
+        "taxId",
+        "contact"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "taxId": {
+          "type": "string"
+        },
+        "contact": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "string",
+              "format": "email"
+            },
+            "phone": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "insuredPersons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/insuredPerson"
+      },
+      "minItems": 1
+    },
+    "coverages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/coverage"
+      },
+      "minItems": 1
+    },
+    "premium": {
+      "type": "object",
+      "required": [
+        "totalAnnualPremium",
+        "paymentFrequency"
+      ],
+      "properties": {
+        "totalAnnualPremium": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "MUST equal sum of coverages[*].premium (annualised)"
+        },
+        "paymentFrequency": {
+          "type": "string",
+          "enum": [
+            "monthly",
+            "quarterly",
+            "semi-annual",
+            "annual"
+          ]
+        },
+        "loadings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "reason",
+              "amount"
+            ],
+            "properties": {
+              "reason": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "discounts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "reason",
+              "amount"
+            ],
+            "properties": {
+              "reason": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number",
+                "maximum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "endorsements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "endorsementId",
+          "description",
+          "effectiveDate"
+        ],
+        "properties": {
+          "endorsementId": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "premiumAdjustment": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "claimsHistory": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "underwritingMedical": {
+      "type": "object",
+      "properties": {
+        "bmi": {
+          "type": "number"
+        },
+        "bloodPressure": {
+          "type": "string"
+        },
+        "examDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "examinerName": {
+          "type": "string"
+        },
+        "results": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "policyType": {
+        "const": "life"
+      }
+    }
+  },
+  "then": {
+    "required": [
+      "underwritingMedical"
+    ]
+  }
+}
